@@ -1,0 +1,175 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © Panth Infotech. All rights reserved.
+ *
+ * Panth_ImageOptimizer - Frontend image performance module.
+ *
+ * What this module DOES (all frontend JavaScript):
+ *   - Lazy loading: native loading="lazy" attribute (via PHP plugin) and/or
+ *     IntersectionObserver-based lazy loading with fade-in, above-fold exclusion.
+ *   - WebP detection: detects browser WebP support; removes <source type="image/webp">
+ *     tags when the browser cannot render WebP (fallback behavior only, no server-side conversion).
+ *   - Performance hints: injects <link rel="preload"> for critical images,
+ *     sets decoding="async" and fetchpriority="high" attributes via JS.
+ *
+ * What this module does NOT do:
+ *   - No server-side WebP conversion (use a dedicated module or CDN for that).
+ *   - No responsive image generation (no srcset/sizes rewriting).
+ *   - No CDN URL rewriting.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <section id="panth_imageoptimizer" translate="label" type="text" sortOrder="110" showInDefault="1" showInWebsite="1" showInStore="1">
+            <label>Image Optimizer</label>
+            <tab>panth</tab>
+            <resource>Panth_ImageOptimizer::config</resource>
+
+            <!-- General Settings: master enable/disable and debug toggle -->
+            <group id="general" translate="label" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>General Settings</label>
+                <field id="enabled" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Enable Image Optimizer</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>Master switch for all frontend image optimizations (lazy loading, WebP detection, performance hints).</comment>
+                    <backend_model>Panth\ImageOptimizer\Model\Config\Backend\Enabled</backend_model>
+                </field>
+                <field id="debug_mode" translate="label comment" type="select" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Enable Debug Mode</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>Log image optimization activity to the browser console (disable in production).</comment>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+            </group>
+
+            <!-- WebP Detection: browser-side WebP support check and fallback behavior.
+                 NOTE: This does NOT convert images to WebP on the server. It only detects whether
+                 the browser supports WebP and removes unsupported <source> elements. -->
+            <group id="webp" translate="label" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>WebP Detection (Frontend Only)</label>
+                <field id="enabled" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Enable WebP Detection</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>Detect browser WebP support via JavaScript. When unsupported, removes WebP source elements so the browser falls back to PNG/JPG. Does NOT perform server-side conversion.</comment>
+                    <depends>
+                        <field id="panth_imageoptimizer/general/enabled">1</field>
+                    </depends>
+                </field>
+                <field id="fallback_enabled" translate="label comment" type="select" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Enable Fallback Behavior</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>When WebP is not supported, strip WebP source tags from picture elements so the browser loads the fallback image.</comment>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+            </group>
+
+            <!-- Lazy Loading: defers offscreen images until they approach the viewport.
+                 Native strategy adds loading="lazy" via PHP plugin on product images.
+                 IntersectionObserver strategy uses JS to swap data-src to src when visible.
+                 Hybrid uses both. -->
+            <group id="lazy_loading" translate="label" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>Lazy Loading</label>
+                <field id="enabled" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Enable Lazy Loading</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>Delay loading offscreen images until they approach the viewport.</comment>
+                    <depends>
+                        <field id="panth_imageoptimizer/general/enabled">1</field>
+                    </depends>
+                </field>
+                <field id="loading_strategy" translate="label comment" type="select" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Loading Strategy</label>
+                    <source_model>Panth\ImageOptimizer\Model\Config\Source\LoadingStrategy</source_model>
+                    <comment>Native: adds loading="lazy" attribute (best compatibility). Intersection Observer: JS-based with fade-in support. Hybrid: both.</comment>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="threshold" translate="label comment" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Threshold (pixels)</label>
+                    <comment>Start loading images this many pixels before they enter the viewport. Only applies to Intersection Observer strategy.</comment>
+                    <validate>validate-number validate-zero-or-greater</validate>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="placeholder" translate="label comment" type="select" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Placeholder Type</label>
+                    <source_model>Panth\ImageOptimizer\Model\Config\Source\PlaceholderType</source_model>
+                    <comment>Visual placeholder shown while an image is loading. Only applies to Intersection Observer strategy.</comment>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="fade_in" translate="label comment" type="select" sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Enable Fade-In Effect</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>Smoothly fade images in when they finish loading. Only applies to Intersection Observer strategy.</comment>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="exclude_above_fold" translate="label comment" type="select" sortOrder="60" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Exclude Above-the-Fold Images</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>Skip lazy loading for the first N images on the page to improve LCP (Largest Contentful Paint).</comment>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="exclude_count" translate="label comment" type="text" sortOrder="70" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Exclude First N Images</label>
+                    <comment>Number of images at the top of the page to load immediately (not lazy loaded).</comment>
+                    <validate>validate-number validate-zero-or-greater</validate>
+                    <depends>
+                        <field id="exclude_above_fold">1</field>
+                    </depends>
+                </field>
+            </group>
+
+            <!-- Performance: additional frontend hints that improve Core Web Vitals.
+                 All of these work via the frontend JavaScript injected on every page. -->
+            <group id="performance" translate="label" type="text" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>Performance Settings</label>
+                <field id="preload_critical_images" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Preload Critical Images</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>Dynamically inject link rel="preload" tags for the first N images on the page to improve LCP.</comment>
+                    <depends>
+                        <field id="panth_imageoptimizer/general/enabled">1</field>
+                    </depends>
+                </field>
+                <field id="preload_count" translate="label comment" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Preload Image Count</label>
+                    <comment>Number of images to preload (recommended: 1-2).</comment>
+                    <validate>validate-number validate-zero-or-greater</validate>
+                    <depends>
+                        <field id="preload_critical_images">1</field>
+                    </depends>
+                </field>
+                <field id="decode_async" translate="label comment" type="select" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Async Image Decoding</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>Add decoding="async" to all images so the browser decodes them off the main thread.</comment>
+                    <depends>
+                        <field id="panth_imageoptimizer/general/enabled">1</field>
+                    </depends>
+                </field>
+                <field id="fetchpriority" translate="label comment" type="select" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Use fetchpriority Attribute</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>Set fetchpriority="high" on critical images to hint the browser to download them first (Chrome 101+).</comment>
+                    <depends>
+                        <field id="panth_imageoptimizer/general/enabled">1</field>
+                    </depends>
+                </field>
+            </group>
+
+        </section>
+    </system>
+</config>

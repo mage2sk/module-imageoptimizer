@@ -1,0 +1,226 @@
+<?php
+/**
+ * Copyright © Panth Infotech. All rights reserved.
+ *
+ * Frontend image optimization script.
+ *
+ * Features:
+ *   - WebP detection: removes <source type="image/webp"> when browser lacks support
+ *   - Lazy loading: native loading="lazy" logging, or IntersectionObserver with
+ *     fade-in and above-fold exclusion
+ *   - Performance: preload critical images, decoding="async", fetchpriority="high"
+ *
+ * @var \Panth\ImageOptimizer\Block\ImageOptimizer $block
+ */
+
+if (!$block->isEnabled()) {
+    return;
+}
+
+$config = $block->getConfigJson();
+?>
+
+<script>
+/**
+ * Panth Image Optimizer
+ * Frontend-only: WebP detection, lazy loading, and performance hints.
+ */
+(function() {
+    'use strict';
+
+    var config = <?= /* @noEscape */ $config ?>;
+
+    if (!config.enabled) {
+        return;
+    }
+
+    /**
+     * Debug logger -- only outputs when debug mode is on in admin.
+     */
+    function log() {
+        if (config.debug) {
+            var args = Array.prototype.slice.call(arguments);
+            args.unshift('[ImageOptimizer]');
+            console.log.apply(console, args);
+        }
+    }
+
+    // =========================================================================
+    // WebP Detection & Fallback
+    // =========================================================================
+
+    /**
+     * Returns true if the browser can render WebP images.
+     */
+    function supportsWebP() {
+        var canvas = document.createElement('canvas');
+        if (canvas.getContext && canvas.getContext('2d')) {
+            return canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0;
+        }
+        return false;
+    }
+
+    if (config.webp.enabled) {
+        var webpOk = supportsWebP();
+        log('WebP supported:', webpOk);
+
+        if (!webpOk && config.webp.fallback) {
+            // Strip webp source elements so the browser loads the fallback image tag.
+            var sources = document.querySelectorAll('source[type="image/webp"]');
+            for (var i = 0; i < sources.length; i++) {
+                var parent = sources[i].parentElement;
+                if (parent && parent.tagName === 'PICTURE') {
+                    sources[i].remove();
+                }
+            }
+            log('Removed', sources.length, 'WebP source elements (unsupported browser)');
+        }
+    }
+
+    // =========================================================================
+    // Lazy Loading
+    // =========================================================================
+
+    if (config.lazyLoading.enabled) {
+        var strategy = config.lazyLoading.strategy;
+        var threshold = config.lazyLoading.threshold || 300;
+        var excludeCount = config.lazyLoading.excludeAboveFold ? (config.lazyLoading.excludeCount || 3) : 0;
+
+        /**
+         * Native lazy loading just logs -- the actual loading="lazy" attribute
+         * is added server-side by the Plugin/Image.php afterToHtml plugin.
+         */
+        function logNativeLazyLoading() {
+            var images = document.querySelectorAll('img[loading="lazy"]');
+            log('Native lazy loading active on', images.length, 'images');
+        }
+
+        /**
+         * IntersectionObserver-based lazy loading for images with data-src.
+         * Supports fade-in effect and above-fold exclusion.
+         */
+        function applyIntersectionObserver() {
+            if (!('IntersectionObserver' in window)) {
+                log('IntersectionObserver not supported, falling back to native');
+                logNativeLazyLoading();
+                return;
+            }
+
+            var images = document.querySelectorAll('img[data-src]');
+            if (!images.length) {
+                log('No data-src images found for IntersectionObserver');
+                return;
+            }
+
+            var observer = new IntersectionObserver(function(entries) {
+                for (var i = 0; i < entries.length; i++) {
+                    var entry = entries[i];
+                    if (!entry.isIntersecting) {
+                        continue;
+                    }
+
+                    var img = entry.target;
+
+                    // Swap data-src/data-srcset to real attributes
+                    if (img.dataset.src) {
+                        img.src = img.dataset.src;
+                        img.removeAttribute('data-src');
+                    }
+                    if (img.dataset.srcset) {
+                        img.srcset = img.dataset.srcset;
+                        img.removeAttribute('data-srcset');
+                    }
+
+                    // Optional fade-in
+                    if (config.lazyLoading.fadeIn) {
+                        img.style.opacity = '0';
+                        img.style.transition = 'opacity 0.3s ease';
+                        img.onload = (function(el) {
+                            return function() { el.style.opacity = '1'; };
+                        })(img);
+                    }
+
+                    observer.unobserve(img);
+                    log('Lazy loaded:', img.src);
+                }
+            }, {
+                rootMargin: threshold + 'px'
+            });
+
+            var observed = 0;
+            for (var j = 0; j < images.length; j++) {
+                // Immediately load above-fold images
+                if (j < excludeCount) {
+                    if (images[j].dataset.src) {
+                        images[j].src = images[j].dataset.src;
+                        images[j].removeAttribute('data-src');
+                    }
+                    if (images[j].dataset.srcset) {
+                        images[j].srcset = images[j].dataset.srcset;
+                        images[j].removeAttribute('data-srcset');
+                    }
+                    log('Above-fold (loaded immediately):', images[j].src);
+                } else {
+                    observer.observe(images[j]);
+                    observed++;
+                }
+            }
+            log('IntersectionObserver watching', observed, 'images');
+        }
+
+        if (strategy === 'native') {
+            logNativeLazyLoading();
+        } else if (strategy === 'intersection') {
+            applyIntersectionObserver();
+        } else if (strategy === 'hybrid') {
+            logNativeLazyLoading();
+            applyIntersectionObserver();
+        }
+    }
+
+    // =========================================================================
+    // Performance Hints
+    // =========================================================================
+
+    /**
+     * Preload critical images by injecting <link rel="preload"> into <head>.
+     */
+    if (config.performance.preload) {
+        var preloadCount = config.performance.preloadCount || 2;
+        var allImages = document.querySelectorAll('img');
+        var preloaded = 0;
+
+        for (var p = 0; p < Math.min(preloadCount, allImages.length); p++) {
+            var imgSrc = allImages[p].src || allImages[p].dataset.src;
+            if (imgSrc) {
+                var link = document.createElement('link');
+                link.rel = 'preload';
+                link.as = 'image';
+                link.href = imgSrc;
+
+                if (config.performance.fetchpriority) {
+                    link.fetchPriority = 'high';
+                    allImages[p].fetchPriority = 'high';
+                }
+
+                document.head.appendChild(link);
+                preloaded++;
+                log('Preloaded critical image:', imgSrc);
+            }
+        }
+    }
+
+    /**
+     * Add decoding="async" to all images so the browser decodes off main thread.
+     */
+    if (config.performance.decodeAsync) {
+        var decodeImages = document.querySelectorAll('img');
+        for (var d = 0; d < decodeImages.length; d++) {
+            decodeImages[d].decoding = 'async';
+        }
+        log('Applied decoding="async" to', decodeImages.length, 'images');
+    }
+
+    log('Image Optimizer initialized');
+})();
+</script>

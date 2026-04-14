@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Backend:etc/menu.xsd">
+    <menu>
+        <add id="Panth_ImageOptimizer::group"
+             title="Image Optimizer"
+             module="Panth_ImageOptimizer"
+             sortOrder="100"
+             parent="Panth_Core::panth_extensions"
+             resource="Panth_ImageOptimizer::config"/>
+        <add id="Panth_ImageOptimizer::settings"
+             title="Configuration"
+             module="Panth_ImageOptimizer"
+             sortOrder="10"
+             parent="Panth_ImageOptimizer::group"
+             action="adminhtml/system_config/edit/section/panth_imageoptimizer"
+             resource="Panth_ImageOptimizer::config"/>
+    </menu>
+</config>
