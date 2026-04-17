@@ -2,7 +2,7 @@
   "name": "mage2kishan/module-imageoptimizer",
   "description": "Frontend image performance: lazy loading (Native/IntersectionObserver/Hybrid), WebP browser detection with fallback, preload hints, async decoding, and fetchpriority",
   "type": "magento2-module",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "license": "proprietary",
   "authors": [
     {
