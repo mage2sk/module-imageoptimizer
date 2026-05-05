@@ -1,6 +1,16 @@
 <?xml version="1.0"?>
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <!--
+        Per-image plugin on Magento\Catalog\Model\Product\Image::toHtml()
+        catches Luma-style catalog rendering. Hyva and other themes that
+        bypass ProductImage are handled by the Layout::getOutput plugin
+        wired in etc/frontend/di.xml. Both share RequestImageCounter so
+        the "first N above-fold" rule is page-global, not block-local.
+
+        Kept on the global type because ProductImage::toHtml is itself
+        only invoked by frontend rendering, so there's no admin overhead.
+    -->
     <type name="Magento\Catalog\Model\Product\Image">
-        <plugin name="panth_imageoptimizer_lazy_loading" type="Panth\ImageOptimizer\Plugin\Image" sortOrder="10"/>
+        <plugin name="panth_imageoptimizer_lazy_loading_product_image" type="Panth\ImageOptimizer\Plugin\Image" sortOrder="10"/>
     </type>
 </config>
