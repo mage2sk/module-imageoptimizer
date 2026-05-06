@@ -269,7 +269,7 @@ webp.src = 'data:image/webp;base64,UklGRh4AAABXRUJQVlA4TBEAAAAvAAAAAAfQ//73v/+Bi
 
 When WebP is **not** supported, the module walks the DOM and removes `<source type="image/webp">` elements from `<picture>` tags. The browser then loads the `<img>` fallback (PNG/JPG) automatically.
 
-> **Note:** this module does **not** generate WebP files on the server. Use a dedicated module (e.g., `yireo/magento2-webp2`) or a CDN (Cloudflare Polish, Fastly IO, Bunny Optimizer) to produce WebP sources. Panth Image Optimizer handles the **client-side fallback** layer.
+> **Note:** this module does **not** generate WebP files on the server. Use a dedicated WebP-generation module or a CDN (Cloudflare Polish, Fastly IO, Bunny Optimizer) to produce WebP sources. Panth Image Optimizer handles the **client-side fallback** layer.
 
 ---
 
