@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © Panth Infotech. All rights reserved.
+ *
+ * Frontend-only Layout pass that decides loading="eager" / "lazy" /
+ * fetchpriority="high" for every <img> in the rendered HTML. Kept out of
+ * the global di.xml so admin pages (which don't need LCP optimisation)
+ * never pay the regex cost.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <type name="Magento\Framework\View\Layout">
+        <plugin name="panth_imageoptimizer_lazy_loading_layout"
+                type="Panth\ImageOptimizer\Plugin\Layout\LazyLoadingPlugin"
+                sortOrder="100"/>
+    </type>
+</config>

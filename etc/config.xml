@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © Panth Infotech. All rights reserved.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <panth_imageoptimizer>
+            <!-- General: module disabled by default -->
+            <general>
+                <enabled>0</enabled>
+                <debug_mode>0</debug_mode>
+            </general>
+            <!-- WebP detection: frontend-only, enabled when module is on -->
+            <webp>
+                <enabled>1</enabled>
+                <fallback_enabled>1</fallback_enabled>
+            </webp>
+            <!-- Lazy loading: native strategy by default -->
+            <lazy_loading>
+                <enabled>1</enabled>
+                <loading_strategy>native</loading_strategy>
+                <threshold>300</threshold>
+                <placeholder>blur</placeholder>
+                <fade_in>1</fade_in>
+                <exclude_above_fold>1</exclude_above_fold>
+                <exclude_count>3</exclude_count>
+            </lazy_loading>
+            <!-- Performance hints -->
+            <performance>
+                <preload_critical_images>1</preload_critical_images>
+                <preload_count>2</preload_count>
+                <decode_async>1</decode_async>
+                <fetchpriority>1</fetchpriority>
+            </performance>
+        </panth_imageoptimizer>
+    </default>
+</config>
