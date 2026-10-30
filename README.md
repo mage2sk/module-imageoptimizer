@@ -164,7 +164,7 @@ The module creates no database tables, so nothing is left in the schema. The val
 
 ## License
 
-Commercial software license. See [LICENSE.txt](LICENSE.txt) in this repository.
+Free and open source under the MIT License. See [LICENSE.txt](LICENSE.txt).
 
 ## Changelog
 
